@@ -1,0 +1,16 @@
+spring:
+  application:
+    name: test
+  datasource:
+    url: jdbc:h2:mem:testdb
+    driver-class-name: org.h2.Driver
+    username: user
+    password: 
+  jpa:
+    hibernate:
+      ddl-auto: update   # создает/обновляет таблицы автоматически
+    show-sql: true       # показывает SQL-запросы в консоли
+  h2:
+    console:
+      enabled: true       # включает веб-консоль
+      path: /h2   # доступ по адресу http://localhost:8080/h2
