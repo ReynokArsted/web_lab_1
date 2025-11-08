@@ -1,6 +1,6 @@
 spring:
   application:
-    name: test
+    name: lab1
   datasource:
     url: jdbc:h2:mem:testdb
     driver-class-name: org.h2.Driver
@@ -8,9 +8,15 @@ spring:
     password: 
   jpa:
     hibernate:
-      ddl-auto: update   # создает/обновляет таблицы автоматически
-    show-sql: true       # показывает SQL-запросы в консоли
+      ddl-auto: validate 
+    show-sql: true      
   h2:
     console:
-      enabled: true       # включает веб-консоль
-      path: /h2   # доступ по адресу http://localhost:8080/h2
+      enabled: true       
+      path: /h2          
+  liquibase:
+    enabled: true
+    change-log: classpath:/db/changelog/changelog.yaml
+
+server:
+  port: 8080
