@@ -1,48 +1,57 @@
 package com.example.lab1.models;
 
-import jakarta.persistence.CascadeType;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
+import jakarta.persistence.JoinTable;
+import jakarta.persistence.ManyToMany;
 import jakarta.persistence.Table;
+import java.util.List;
 
 @Entity
 @Table(name="note")
 public class Note {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long note_id;
+    
+    @ManyToMany
+    @JoinTable(
+        name = "note_tags",
+        joinColumns = @JoinColumn(name = "note_id"),
+        inverseJoinColumns = @JoinColumn(name = "tag_id")
+    )
+    private List<Tag> tags;
 
-    @ManyToOne(cascade = CascadeType.PERSIST)
-    @JoinColumn(name = "tag_id") 
-    private Tag note_tag; // FK
 
     private String title;
     private String content;
 
     protected Note() {}
 
-    public Note(String title, String content, Tag note_tag) {
+    public Note(String title, String content, List<Tag> tags) {
         this.title = title;
         this.content = content;
-        this.note_tag = note_tag;
+        this.tags = tags;
     }
 
-    public void setNoteTag(Tag tag) {
-        this.note_tag = tag;
+    public void setNoteTags(List<Tag> tags) {
+        this.tags = tags;
     }
 
     public Long getNote_id() { return note_id; }
     public String getTitle() { return title; }
     public String getContent() { return content; }
-    public Tag getNote_tag() { return note_tag; }
+    public List<Tag> getNote_tags() { return tags; }
 
     @Override
     public String toString() {
-        return String.format("Note[note_id=%d, tag ='%s' title='%s', content='%s']", 
-        note_id, note_tag.getTagTitle() ,title, content);
+        return "Note{" + "noteId=" + note_id +
+                ", title='" + title + '\'' +
+                ", content='" + content + '\'' +
+                ", tags=" + tags +
+                '}';
     }
 }
 
