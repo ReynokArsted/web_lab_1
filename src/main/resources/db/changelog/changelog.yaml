@@ -100,3 +100,40 @@ databaseChangeLog:
             baseColumnNames: tag_id
             referencedTableName: tag
             referencedColumnNames: tag_id
+  - changeSet:
+      id: 5
+      author: reynok
+      changes:
+        - createTable:
+            tableName: note_tags
+            columns:
+              - column:
+                  name: note_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: tag_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+        - addForeignKeyConstraint:
+            baseTableName: note_tags
+            baseColumnNames: note_id
+            referencedTableName: note
+            referencedColumnNames: note_id
+            constraintName: fk_note_tags_note
+        - addForeignKeyConstraint:
+            baseTableName: note_tags
+            baseColumnNames: tag_id
+            referencedTableName: tag
+            referencedColumnNames: tag_id
+            constraintName: fk_note_tags_tag
+  - changeSet:
+      id: 6
+      author: reynok
+      changes:
+        - dropColumn:
+            tableName: note
+            columnName: tag_id
+
