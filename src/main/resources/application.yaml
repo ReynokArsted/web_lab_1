@@ -1,22 +1,20 @@
 spring:
   application:
     name: lab1
+
   datasource:
-    url: jdbc:h2:mem:testdb
-    driver-class-name: org.h2.Driver
-    username: user
-    password: 
+    url: jdbc:postgresql://localhost:5432/web_lab_1  
+    username: postgres
+    password: pass7001 
+
   jpa:
     hibernate:
       ddl-auto: validate 
     show-sql: true      
-  h2:
-    console:
-      enabled: true       
-      path: /h2          
+        
   liquibase:
     enabled: true
-    change-log: classpath:/db/changelog/changelog.yaml
+    change-log: classpath:db/changelog/changelog.yaml
 
 server:
   port: 8080
