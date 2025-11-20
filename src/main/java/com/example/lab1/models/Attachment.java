@@ -5,16 +5,17 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Lob;
 import jakarta.persistence.Table;
 
 @Entity
 @Table(name="attachment")
 public class Attachment {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "attachment_id")
     private Long attachment_id;
     private String name;
-    
-    @Column(columnDefinition="LONGBLOB")
+
     private byte[] data;
 
     protected Attachment() {}

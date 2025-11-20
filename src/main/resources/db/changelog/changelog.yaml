@@ -136,4 +136,57 @@ databaseChangeLog:
         - dropColumn:
             tableName: note
             columnName: tag_id
-
+  - changeSet:
+      id: 7
+      author: reynok
+      changes:
+        - createTable:
+            tableName: attachment
+            columns:
+              - column:
+                  name: attachment_id
+                  type: BIGINT
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: name
+                  type: VARCHAR(255)
+              - column:
+                  name: data
+                  type: BYTEA
+        - addColumn:
+            tableName: note
+            columns:
+              - column:
+                  name: attachment_id
+                  type: BIGINT
+        - addForeignKeyConstraint:
+            baseTableName: note
+            baseColumnNames: attachment_id
+            referencedTableName: attachment
+            referencedColumnNames: attachment_id
+            constraintName: fk_note_attachment
+  - changeSet:
+      id: 8
+      author: reynok
+      changes:
+        - addColumn:
+            tableName: note
+            columns:
+              - column:
+                  name: last_edit_time
+                  type: timestamp
+                  defaultValueComputed: CURRENT_TIMESTAMP
+  - changeSet:
+      id: 9
+      author: reynok
+      changes:
+        - createSequence:
+            sequenceName: attachment_id_seq
+            startValue: 1
+            incrementBy: 1
+        - addDefaultValue:
+            tableName: attachment
+            columnName: attachment_id
+            defaultValueSequenceNext: attachment_id_seq

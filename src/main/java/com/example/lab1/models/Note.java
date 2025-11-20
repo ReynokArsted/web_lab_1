@@ -1,6 +1,8 @@
 package com.example.lab1.models;
 
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -32,17 +34,18 @@ public class Note {
     )
     private List<Tag> tags = new ArrayList<>();
 
-    @OneToOne
-    @JoinColumn(name = "attachment_id") 
+    @OneToOne(cascade = CascadeType.ALL, orphanRemoval = true)
+    @JoinColumn(name = "attachment_id")
     private Attachment attachment;        
 
     protected Note() {}
 
     //public Note(String title, String content, List<Tag> tags, Attachment attachment) {
-    public Note(String title, String content, List<Tag> tags) {
+    public Note(String title, String content, List<Tag> tags, Attachment attachment) {
         this.title = title;
         this.content = content;
         this.tags = tags;
+        this.attachment = attachment;
     }
 
     public Long getNote_id() {return noteId;}

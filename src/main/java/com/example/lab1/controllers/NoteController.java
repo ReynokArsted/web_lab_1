@@ -1,22 +1,30 @@
 package com.example.lab1.controllers;
 
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.data.domain.Sort;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+import com.example.lab1.models.Attachment;
 import com.example.lab1.models.Note;
 import com.example.lab1.models.Tag;
+import com.example.lab1.repositories.AttachRepository;
 import com.example.lab1.repositories.NoteRepository;
 import com.example.lab1.repositories.TagRepository;
 
@@ -25,12 +33,14 @@ import com.example.lab1.repositories.TagRepository;
 @RequestMapping("/notes")
 public class NoteController {
 
+    private final AttachRepository attachRepository;
     private final NoteRepository noteRepository;
     private final TagRepository tagRepository;
 
-    public NoteController(NoteRepository noteRepository, TagRepository tagRepository) {
+    public NoteController(NoteRepository noteRepository, TagRepository tagRepository, AttachRepository attachRepository) {
         this.noteRepository = noteRepository;
         this.tagRepository = tagRepository;
+        this.attachRepository = attachRepository;
     }
 
     @GetMapping("/{id}") // Get note by ID
@@ -90,11 +100,12 @@ public class NoteController {
         return noteRepository.save(note);
     }
 
-
-    @PostMapping // Create note
-    public Note createNote(@RequestBody NoteDTO noteDTO) {
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE) // Create note
+    public ResponseEntity<Note> createNote(
+            @RequestPart("note") NoteDTO noteDTO,
+            @RequestPart(value = "file", required = false) MultipartFile file
+    ) throws IOException {
         List<Tag> tags = null;
-
         if (noteDTO.tagTitles != null && !noteDTO.tagTitles.isEmpty()) {
             tags = noteDTO.tagTitles.stream()
                 .map(title -> tagRepository.findByTitle(title)
@@ -102,9 +113,15 @@ public class NoteController {
                 .toList();
         }
 
-        Note note = new Note(noteDTO.title, noteDTO.content, tags);
-        //Note note = new Note(noteDTO.title, noteDTO.content, tags, noteDTO.attachment);
-        return noteRepository.save(note);
+        Attachment attachment = null;
+        if (file != null && !file.isEmpty()) {
+            attachment = new Attachment(file.getOriginalFilename(), file.getBytes());
+            //attachRepository.save(attachment);
+        }
+
+        Note note = new Note(noteDTO.title, noteDTO.content, tags, attachment);
+        Note savedNote = noteRepository.save(note);
+        return ResponseEntity.ok(savedNote);
     }
 
     @DeleteMapping("/{id}") // Delete note
@@ -112,5 +129,21 @@ public class NoteController {
         Note note = noteRepository.findById(id).orElseThrow(() -> 
             new ResponseStatusException(HttpStatus.NOT_FOUND, "Note not found"));
         noteRepository.delete(note);
+    }
+
+    @GetMapping("/{id}/attachment") // Get note's attachment
+    public ResponseEntity<byte[]> downloadAttachment(@PathVariable Long id) {
+        Note note = noteRepository.findById(id)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Note not found"));
+
+        Attachment attachment = note.getAttachment();
+        if (attachment == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Attachment not found");
+        }
+
+        return ResponseEntity.ok()
+            .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + attachment.getName() + "\"")
+            .contentType(MediaType.APPLICATION_OCTET_STREAM)
+            .body(attachment.getData());
     }
 }
