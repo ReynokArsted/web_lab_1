@@ -190,3 +190,28 @@ databaseChangeLog:
             tableName: attachment
             columnName: attachment_id
             defaultValueSequenceNext: attachment_id_seq
+  - changeSet:
+      id: 10
+      author: reynok
+      changes:
+        - dropColumn:
+            columnName: last_edit_time
+            tableName: note
+
+  - changeSet:
+      id: 11
+      author: reynok
+      changes:
+        - addColumn:
+            tableName: note
+            columns:
+              - column:
+                  name: created_time
+                  type: datetime
+                  constraints:
+                    nullable: false
+              - column:
+                  name: last_edit_time
+                  type: datetime
+                  constraints:
+                    nullable: false

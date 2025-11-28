@@ -3,9 +3,9 @@ spring:
     name: lab1
 
   datasource:
-    url: jdbc:postgresql://localhost:5432/web_lab_1  
-    username: postgres
-    password: pass7001 
+    url: ${DB_URL}
+    username: ${DB_USER}
+    password: ${DB_PASS}
 
   jpa:
     hibernate:
@@ -15,6 +15,11 @@ spring:
   liquibase:
     enabled: true
     change-log: classpath:db/changelog/changelog.yaml
+
+  servlet:
+    multipart:
+      max-file-size: 100MB     
+      max-request-size: 200MB 
 
 server:
   port: 8080

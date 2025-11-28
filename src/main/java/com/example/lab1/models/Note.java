@@ -1,8 +1,9 @@
 package com.example.lab1.models;
 
 import jakarta.persistence.CascadeType;
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
+import jakarta.persistence.EntityListeners;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -16,7 +17,23 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
+
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
+
+@JsonPropertyOrder({
+    "note_id",     
+    "title",        
+    "content",
+    "createdTime", 
+    "lastEditTime",
+    "note_tags",   
+    "attachment"
+})
 @Entity
+@EntityListeners(AuditingEntityListener.class)
 @Table(name="note")
 public class Note {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -24,7 +41,13 @@ public class Note {
     
     private String title;
     private String content;
-    private LocalDateTime last_edit_time;
+
+    @CreatedDate
+    @Column(updatable = false) 
+    private LocalDateTime createdTime;
+
+    @LastModifiedDate
+    private LocalDateTime lastEditTime;
 
     @ManyToMany
     @JoinTable(
@@ -40,7 +63,6 @@ public class Note {
 
     protected Note() {}
 
-    //public Note(String title, String content, List<Tag> tags, Attachment attachment) {
     public Note(String title, String content, List<Tag> tags, Attachment attachment) {
         this.title = title;
         this.content = content;
@@ -51,13 +73,13 @@ public class Note {
     public Long getNote_id() {return noteId;}
     public String getTitle() {return title;}
     public String getContent() {return content;}
-    public LocalDateTime getLastEditTime() {return last_edit_time;}
     public List<Tag> getNote_tags() {return tags;}
     public Attachment getAttachment() {return attachment;}
+    public LocalDateTime getCreatedTime() {return createdTime;}
+    public LocalDateTime getLastEditTime() {return lastEditTime;}
 
     public void setTitle(String title) {this.title = title;}
     public void setContent(String content) {this.content = content;}
-    public void setLastEditTime(LocalDateTime time) {this.last_edit_time = time;}
     public void setTags(List<Tag> tags) {this.tags = tags;}
     public void setAttachment(Attachment atch) {this.attachment = atch;}
 }

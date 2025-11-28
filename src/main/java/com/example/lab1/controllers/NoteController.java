@@ -26,21 +26,28 @@ import com.example.lab1.models.Note;
 import com.example.lab1.models.Tag;
 import com.example.lab1.repositories.AttachRepository;
 import com.example.lab1.repositories.NoteRepository;
+import com.example.lab1.repositories.TagCleanerService;
 import com.example.lab1.repositories.TagRepository;
 
 
 @RestController
 @RequestMapping("/notes")
 public class NoteController {
-
     private final AttachRepository attachRepository;
     private final NoteRepository noteRepository;
     private final TagRepository tagRepository;
+    private final TagCleanerService tagCleaner;
 
-    public NoteController(NoteRepository noteRepository, TagRepository tagRepository, AttachRepository attachRepository) {
+    public NoteController(
+        NoteRepository noteRepository, 
+        TagRepository tagRepository, 
+        AttachRepository attachRepository,
+        TagCleanerService tagCleaner) 
+    {
         this.noteRepository = noteRepository;
         this.tagRepository = tagRepository;
         this.attachRepository = attachRepository;
+        this.tagCleaner = tagCleaner;
     }
 
     @GetMapping("/{id}") // Get note by ID
@@ -65,14 +72,33 @@ public class NoteController {
 
     @PostMapping("search") // Search notes by substring
     public List<Note> searchNotes(@RequestBody SearchDTO searchDTO) {
+        if (searchDTO == null || searchDTO.substring.isBlank())
+        {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Substring is empty");
+        }
         String substring = searchDTO.substring.toLowerCase();
         List<Note> allNotes = noteRepository.findAll();
         List<Note> result = new ArrayList<>();
 
         for (Note note : allNotes) {
-            if (note.getTitle().toLowerCase().contains(substring) || 
-                note.getContent().toLowerCase().contains(substring)) {
-                result.add(note);
+            if (note.getTitle() == null && note.getContent() != null)
+            {
+                if (note.getContent().toLowerCase().contains(substring)) {
+                    result.add(note);
+                }
+            }
+            else if (note.getTitle() != null && note.getContent() == null)
+            {
+                if (note.getTitle().toLowerCase().contains(substring)) {
+                    result.add(note);
+                }
+            }
+            else if (note.getTitle() != null && note.getContent() != null)
+            {
+                if (note.getTitle().toLowerCase().contains(substring) || 
+                    note.getContent().toLowerCase().contains(substring)) {
+                    result.add(note);
+                }
             }
         }
 
@@ -84,20 +110,39 @@ public class NoteController {
     }
     
     @PostMapping("/{id}") // Edit note
-    public Note edit_note(@PathVariable long id, @RequestBody NoteDTO noteDTO) {
+    public Note edit_note(
+        @PathVariable long id,
+        @RequestPart(value = "note", required = false) NoteDTO noteDTO,
+        @RequestPart(value = "file", required = false) MultipartFile file
+    ) throws IOException {
         Optional<Note> noteOptional = noteRepository.findById(id);
         Note note = noteOptional.orElseThrow(() -> 
             new ResponseStatusException(HttpStatus.NOT_FOUND, "Note not found"));
 
-        note.setTitle(noteDTO.title);
-        note.setContent(noteDTO.content);
-        note.setTags(new ArrayList<>(
-            noteDTO.tagTitles.stream()
-                .map(title -> tagRepository.findByTitle(title)
-                .orElseGet(() -> tagRepository.save(new Tag(title))))
-            .toList()
-        ));
-        return noteRepository.save(note);
+        if (noteDTO != null) {
+            if (noteDTO.title != null) {
+                note.setTitle(noteDTO.title);
+            }
+            if (noteDTO.content != null) {
+                note.setContent(noteDTO.content);
+            }
+            if (noteDTO.tagTitles != null && !noteDTO.tagTitles.isEmpty()) {
+            note.setTags(new ArrayList<>(
+                noteDTO.tagTitles.stream()
+                    .map(title -> tagRepository.findByTitle(title)
+                        .orElseGet(() -> tagRepository.save(new Tag(title))))
+                    .toList()
+                ));
+            }
+        }
+
+        if (file != null && !file.isEmpty()) {
+            note.setAttachment(new Attachment(file.getOriginalFilename(), file.getBytes()));
+        }
+
+        noteRepository.save(note);
+        tagCleaner.cleanupOrphanTags(); // Deleting unused tags
+        return note;
     }
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE) // Create note
@@ -116,19 +161,45 @@ public class NoteController {
         Attachment attachment = null;
         if (file != null && !file.isEmpty()) {
             attachment = new Attachment(file.getOriginalFilename(), file.getBytes());
-            //attachRepository.save(attachment);
         }
 
-        Note note = new Note(noteDTO.title, noteDTO.content, tags, attachment);
-        Note savedNote = noteRepository.save(note);
+        Note savedNote = noteRepository.save(
+            new Note(noteDTO.title, noteDTO.content, tags, attachment));
         return ResponseEntity.ok(savedNote);
+    }
+
+    @DeleteMapping("/{id}/attachment") // Delete attachment by note id
+    public void deleteAttachment(@PathVariable long id) {
+        Note note = noteRepository.findById(id).orElseThrow(() -> 
+            new ResponseStatusException(HttpStatus.NOT_FOUND, "Note not found"));
+        
+        Attachment atch = note.getAttachment();
+        if (atch != null)
+        {
+            Attachment rep_atch = attachRepository.findById(atch.getAttachment_id())
+                .orElseThrow(() ->
+                    new ResponseStatusException(HttpStatus.NOT_FOUND, "Attachment not found"));
+            note.setAttachment(null);
+            attachRepository.delete(rep_atch);
+        }
+        noteRepository.save(note);
     }
 
     @DeleteMapping("/{id}") // Delete note
     public void deleteNote(@PathVariable long id) {
         Note note = noteRepository.findById(id).orElseThrow(() -> 
             new ResponseStatusException(HttpStatus.NOT_FOUND, "Note not found"));
+        Attachment atch = note.getAttachment();
+        if (atch != null)
+        {
+            Attachment rep_atch = attachRepository.findById(atch.getAttachment_id())
+                .orElseThrow(() ->
+                    new ResponseStatusException(HttpStatus.NOT_FOUND, "Attachment not found"));
+            note.setAttachment(null);
+            attachRepository.delete(rep_atch);
+        }
         noteRepository.delete(note);
+        tagCleaner.cleanupOrphanTags(); // Deleting unused tags
     }
 
     @GetMapping("/{id}/attachment") // Get note's attachment
